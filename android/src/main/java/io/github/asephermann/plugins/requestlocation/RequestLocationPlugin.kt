@@ -73,7 +73,6 @@ class RequestLocationPlugin : Plugin() {
         }
     }
 
-
     @PluginMethod
     fun checkLocationPermission(call: PluginCall) {
 
