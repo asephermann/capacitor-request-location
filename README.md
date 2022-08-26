@@ -26,7 +26,7 @@ checkLocationPermission = async () => {
 
 <docgen-index>
 
-- [`checkLocationPermission()`](#checklocationpermission)
+* [`checkLocationPermission()`](#checklocationpermission)
 
 </docgen-index>
 
@@ -39,6 +39,6 @@ checkLocationPermission = async () => {
 checkLocationPermission() => Promise<void>
 ```
 
----
+--------------------
 
 </docgen-api>
