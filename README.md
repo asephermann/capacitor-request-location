@@ -26,17 +26,41 @@ checkLocationPermission = async () => {
 
 <docgen-index>
 
-* [`checkLocationPermission()`](#checklocationpermission)
+* [`isLocationPermissionGranted()`](#islocationpermissiongranted)
+* [`isAlwaysAllowLocation()`](#isalwaysallowlocation)
+* [`requestPermission()`](#requestpermission)
 
 </docgen-index>
 
 <docgen-api>
 <!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
 
-### checkLocationPermission()
+### isLocationPermissionGranted()
 
 ```typescript
-checkLocationPermission() => Promise<void>
+isLocationPermissionGranted() => Promise<{ isGranted: boolean; }>
+```
+
+**Returns:** <code>Promise&lt;{ isGranted: boolean; }&gt;</code>
+
+--------------------
+
+
+### isAlwaysAllowLocation()
+
+```typescript
+isAlwaysAllowLocation() => Promise<{ isAlways: boolean; }>
+```
+
+**Returns:** <code>Promise&lt;{ isAlways: boolean; }&gt;</code>
+
+--------------------
+
+
+### requestPermission()
+
+```typescript
+requestPermission() => Promise<void>
 ```
 
 --------------------

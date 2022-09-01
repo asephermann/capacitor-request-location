@@ -2,6 +2,7 @@ package io.github.asephermann.plugins.requestlocation
 
 import android.Manifest
 import android.app.AlertDialog
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -11,11 +12,17 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.startActivity
+import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
-import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+
 
 @CapacitorPlugin(name = "RequestLocation")
 class RequestLocationPlugin : Plugin() {
@@ -74,44 +81,83 @@ class RequestLocationPlugin : Plugin() {
     }
 
     @PluginMethod
-    fun checkLocationPermission(call: PluginCall) {
+    fun isLocationPermissionGranted(call: PluginCall) {
 
-        fusedLocationProvider = LocationServices.getFusedLocationProviderClient(activity)
+        val ret = JSObject()
 
         if (ActivityCompat.checkSelfPermission(
                 activity,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
+            ret.put("isGranted", false)
+        } else {
+            ret.put("isGranted", true)
+        }
+
+        call.resolve(ret)
+    }
+
+    @PluginMethod
+    fun isAlwaysAllowLocation(call: PluginCall) {
+
+        val ret = JSObject()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ActivityCompat.checkSelfPermission(
                     activity,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                )
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
             ) {
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-                AlertDialog.Builder(activity)
-                    .setTitle("Location Permission Needed")
-                    .setMessage("This app needs the Location permission, please accept to use location functionality")
-                    .setPositiveButton(
-                        "OK"
-                    ) { _, _ ->
-                        //Prompt the user once explanation has been shown
-                        requestLocationPermission()
-                    }
-                    .create()
-                    .show()
+                ret.put("isAlways", false)
             } else {
-                // No explanation needed, we can request the permission.
-                return requestLocationPermission()
+                ret.put("isAlways", true)
             }
         } else {
-            checkBackgroundLocation()
+            ret.put("isAlways", true)
+        }
+
+        call.resolve(ret)
+    }
+
+    @PluginMethod
+    fun requestPermission(call: PluginCall) {
+        if (ActivityCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestLocationPermission()
+        } else {
+            if (ActivityCompat.checkSelfPermission(
+                    activity,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestBackgroundLocationPermission()
+            } else {
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", activity.packageName, null)
+                    )
+                )
+            }
         }
 
         call.resolve()
+    }
+
+    fun checkPermission() {
+        if (ActivityCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestLocationPermission()
+        } else {
+            checkBackgroundLocation()
+        }
     }
 
     private fun checkBackgroundLocation() {
@@ -153,6 +199,33 @@ class RequestLocationPlugin : Plugin() {
         }
     }
 
+    private fun showExplanation() {
+        // Should we show an explanation?
+        if (ActivityCompat.shouldShowRequestPermissionRationale(
+                activity,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        ) {
+            // Show an explanation to the user *asynchronously* -- don't block
+            // this thread waiting for the user's response! After the user
+            // sees the explanation, try again to request the permission.
+            AlertDialog.Builder(activity)
+                .setTitle("Location Permission Needed")
+                .setMessage("This app needs the Location permission, please accept to use location functionality")
+                .setPositiveButton(
+                    "OK"
+                ) { _, _ ->
+                    //Prompt the user once explanation has been shown
+                    requestLocationPermission()
+                }
+                .create()
+                .show()
+        } else {
+            // No explanation needed, we can request the permission.
+            return requestLocationPermission()
+        }
+    }
+
     override fun handleRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>?,
@@ -173,12 +246,6 @@ class RequestLocationPlugin : Plugin() {
                                 Manifest.permission.ACCESS_FINE_LOCATION
                             ) == PackageManager.PERMISSION_GRANTED
                         ) {
-                            fusedLocationProvider?.requestLocationUpdates(
-                                locationRequest,
-                                locationCallback,
-                                Looper.getMainLooper()
-                            )
-
                             // Now check background location
                             checkBackgroundLocation()
                         }
@@ -216,15 +283,9 @@ class RequestLocationPlugin : Plugin() {
                         // location-related task you need to do.
                         if (ContextCompat.checkSelfPermission(
                                 activity,
-                                Manifest.permission.ACCESS_FINE_LOCATION
+                                Manifest.permission.ACCESS_BACKGROUND_LOCATION
                             ) == PackageManager.PERMISSION_GRANTED
                         ) {
-                            fusedLocationProvider?.requestLocationUpdates(
-                                locationRequest,
-                                locationCallback,
-                                Looper.getMainLooper()
-                            )
-
                             Toast.makeText(
                                 activity,
                                 "Granted Background Location Permission",
@@ -245,7 +306,7 @@ class RequestLocationPlugin : Plugin() {
     }
 
     companion object {
-        private const val MY_PERMISSIONS_REQUEST_LOCATION = 99
-        private const val MY_PERMISSIONS_REQUEST_BACKGROUND_LOCATION = 66
+        private const val MY_PERMISSIONS_REQUEST_LOCATION = 1
+        private const val MY_PERMISSIONS_REQUEST_BACKGROUND_LOCATION = 2
     }
 }

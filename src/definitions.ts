@@ -1,3 +1,5 @@
 export interface RequestLocationPlugin {
-  checkLocationPermission(): Promise<void>;
+  isLocationPermissionGranted(): Promise<{ isGranted: boolean }>;
+  isAlwaysAllowLocation(): Promise<{ isAlways: boolean }>;
+  requestPermission(): Promise<void>;
 }
