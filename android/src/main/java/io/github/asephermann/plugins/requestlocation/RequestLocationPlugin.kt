@@ -2,8 +2,8 @@ package io.github.asephermann.plugins.requestlocation
 
 import android.Manifest
 import android.app.AlertDialog
-import android.content.ComponentName
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -12,7 +12,6 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.startActivity
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -128,6 +127,14 @@ class RequestLocationPlugin : Plugin() {
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             requestLocationPermission()
+
+            if (ActivityCompat.checkSelfPermission(
+                    activity,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestBackgroundLocationPermission()
+            }
         } else {
             if (ActivityCompat.checkSelfPermission(
                     activity,
@@ -136,11 +143,17 @@ class RequestLocationPlugin : Plugin() {
             ) {
                 requestBackgroundLocationPermission()
             } else {
+                Toast.makeText(
+                    context,
+                    "Go to App Permissions -> Location",
+                    Toast.LENGTH_LONG
+                ).show()
+
                 context.startActivity(
                     Intent(
                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         Uri.fromParts("package", activity.packageName, null)
-                    )
+                    ).addFlags(FLAG_ACTIVITY_NEW_TASK)
                 )
             }
         }
@@ -267,7 +280,7 @@ class RequestLocationPlugin : Plugin() {
                                 Intent(
                                     Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                                     Uri.fromParts("package", activity.packageName, null)
-                                ),
+                                ).addFlags(FLAG_ACTIVITY_NEW_TASK),
                             )
                         }
                     }
