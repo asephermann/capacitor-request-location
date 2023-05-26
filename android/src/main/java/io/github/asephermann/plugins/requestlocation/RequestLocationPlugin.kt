@@ -239,6 +239,7 @@ class RequestLocationPlugin : Plugin() {
         }
     }
 
+    @Deprecated("Deprecated in Java")
     override fun handleRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>?,
